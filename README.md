@@ -117,6 +117,10 @@ npx tsx src/db/migrate.ts
 npm run dev
 ```
 
+### 7. Open the dashboard
+- Visit `http://localhost:3000/dashboard.html`
+- Enter the API key from your `.env` file to connect the dashboard and submit jobs
+
 ---
 
 ## Local URLs
@@ -215,7 +219,7 @@ docker build -t job-queue-system .
 | `REDIS_HOST` | localhost | Redis host |
 | `REDIS_PORT` | 6379 | Redis port |
 | `DB_HOST` | localhost | PostgreSQL host |
-| `DB_PORT` | 5432 | PostgreSQL port |
+| `DB_PORT` | 5433 | PostgreSQL host port for local Docker Compose (`5432` inside containers) |
 | `DB_NAME` | jobqueue | Database name |
 | `DB_USER` | postgres | Database user |
 | `DB_PASSWORD` | postgres | Database password |

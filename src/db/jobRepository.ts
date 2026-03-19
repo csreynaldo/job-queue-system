@@ -14,6 +14,7 @@ export interface JobRecord {
   attempts: number;
   max_attempts: number;
   duration_ms: number | null;
+  scheduled_for: Date | null;
   created_at: Date;
   started_at: Date | null;
   completed_at: Date | null;
@@ -24,7 +25,9 @@ export interface CreateJobRecord {
   bull_job_id: string;
   type: JobType;
   priority: JobPriority;
+  status?: JobStatus;
   data: Record<string, unknown>;
+  scheduled_for?: Date;
 }
 
 export interface ListJobsFilter {
@@ -39,13 +42,24 @@ export interface ListJobsFilter {
 // ================================
 export const createJob = async (input: CreateJobRecord): Promise<JobRecord> => {
   const { rows } = await db.query<JobRecord>(
-    `INSERT INTO jobs (bull_job_id, type, priority, data)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO jobs (bull_job_id, type, priority, status, data, scheduled_for)
+     VALUES ($1, $2, $3, $4, $5, $6)
      ON CONFLICT (bull_job_id) DO UPDATE
        SET type = EXCLUDED.type,
+           priority = EXCLUDED.priority,
+           status = EXCLUDED.status,
+           data = EXCLUDED.data,
+           scheduled_for = EXCLUDED.scheduled_for,
            updated_at = NOW()
      RETURNING *`,
-    [`${input.type}-${input.bull_job_id}`, input.type, input.priority, JSON.stringify(input.data)],
+    [
+      `${input.type}-${input.bull_job_id}`,
+      input.type,
+      input.priority,
+      input.status ?? 'queued',
+      JSON.stringify(input.data),
+      input.scheduled_for ?? null,
+    ],
   );
   return rows[0];
 };

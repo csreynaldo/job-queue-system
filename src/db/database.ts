@@ -1,18 +1,20 @@
 import { Pool } from 'pg';
+import { config } from '../config';
 import { logger } from '../config/logger';
 
-// Use connection string to bypass SASL password issue
-const connectionString = `postgresql://${process.env.DB_USER || 'postgres'}:${process.env.DB_PASSWORD || 'postgres'}@${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || '5433'}/${process.env.DB_NAME || 'jobqueue'}`;
-
 logger.info('Connecting to PostgreSQL', {
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || '5433',
-  db: process.env.DB_NAME || 'jobqueue',
-  user: process.env.DB_USER || 'postgres',
+  host: config.db.host,
+  port: config.db.port,
+  db: config.db.name,
+  user: config.db.user,
 });
 
 export const db = new Pool({
-  connectionString,
+  host: config.db.host,
+  port: config.db.port,
+  database: config.db.name,
+  user: config.db.user,
+  password: config.db.password,
   max: 50,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,

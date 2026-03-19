@@ -65,6 +65,9 @@ router.post(
 
     const { type, priority, data, scheduledFor } = parsed.data;
     const queue = getQueue(type);
+    const scheduledAt = scheduledFor ? new Date(scheduledFor) : undefined;
+    const delayMs = scheduledAt ? Math.max(0, scheduledAt.getTime() - Date.now()) : 0;
+    const initialStatus: JobStatus = delayMs > 0 ? 'delayed' : 'queued';
 
     // 1. Generate ID and save to database first
     const bullJobId = uuidv4();
@@ -72,27 +75,32 @@ router.post(
       bull_job_id: bullJobId,
       type,
       priority,
+      status: initialStatus,
       data: data as Record<string, unknown>,
+      scheduled_for: scheduledAt,
     });
 
     // 2. Dispatch to BullMQ safely
     let bullJob;
     try {
-      const delayMs = scheduledFor
-        ? Math.max(0, new Date(scheduledFor).getTime() - Date.now())
-        : undefined;
       bullJob = await queue.add(`${type}-job`, data, {
         jobId: bullJobId,
         priority: PRIORITY_MAP[priority],
-        delay: delayMs,
+        delay: delayMs || undefined,
       });
     } catch (err) {
       logger.error('❌ Failed to dispatch job to BullMQ', { error: (err as Error).message });
-      await updateJobStatus(`${type}-${bullJobId}`, 'failed', { error: (err as Error).message });
+      const failedJob = await updateJobStatus(`${type}-${bullJobId}`, 'failed', {
+        error: (err as Error).message,
+      });
+      if (failedJob) {
+        emitJobStatus(failedJob.id, bullJobId, type, 'failed', { error: (err as Error).message });
+      }
       throw new AppError(500, 'Failed to enqueue job');
     }
 
     jobsSubmittedTotal.labels(type, priority).inc();
+    emitJobStatus(jobRecord.id, bullJob.id!, type, initialStatus);
 
     logger.info(`📥 Job submitted`, { jobId: jobRecord.id, type, priority });
 
@@ -101,7 +109,8 @@ router.post(
       bullJobId: bullJob.id,
       type,
       priority,
-      status: 'queued',
+      status: initialStatus,
+      scheduledFor: jobRecord.scheduled_for,
       createdAt: jobRecord.created_at,
     });
   }),

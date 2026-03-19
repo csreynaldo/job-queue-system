@@ -8,68 +8,106 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
-    header { background: #1e293b; padding: 20px 32px; border-bottom: 1px solid #334155; display: flex; align-items: center; justify-content: space-between; }
+    header { background: #1e293b; padding: 20px 32px; border-bottom: 1px solid #334155; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
     header h1 { font-size: 1.4rem; font-weight: 700; color: #f8fafc; }
     .badge { background: #22c55e; color: #fff; font-size: 0.75rem; padding: 4px 10px; border-radius: 20px; font-weight: 600; }
     .badge.offline { background: #ef4444; }
     .container { max-width: 1200px; margin: 0 auto; padding: 32px; }
-    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+    .panel { background: #1e293b; border: 1px solid #334155; border-radius: 14px; padding: 20px; margin-bottom: 24px; }
+    .panel-title { font-size: 0.85rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px; }
+    .settings-grid { display: grid; grid-template-columns: 1.3fr 1fr auto; gap: 12px; align-items: end; }
+    .setting-copy { font-size: 0.85rem; color: #94a3b8; margin-top: 10px; }
+    .setting-copy strong { color: #f8fafc; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 32px; }
     .stat { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; }
     .stat-label { font-size: 0.8rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
     .stat-value { font-size: 2rem; font-weight: 700; }
     .stat-value.queued { color: #f59e0b; }
+    .stat-value.delayed { color: #f97316; }
     .stat-value.active { color: #3b82f6; }
     .stat-value.completed { color: #22c55e; }
     .stat-value.failed { color: #ef4444; }
+    .stat-value.paused { color: #94a3b8; }
     .section-title { font-size: 1rem; font-weight: 600; color: #94a3b8; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em; }
     .submit-bar { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; margin-bottom: 32px; display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
-    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; min-width: 160px; }
     .form-group label { font-size: 0.8rem; color: #94a3b8; }
-    select, input { background: #0f172a; border: 1px solid #334155; color: #e2e8f0; padding: 8px 12px; border-radius: 8px; font-size: 0.9rem; outline: none; }
+    select, input { background: #0f172a; border: 1px solid #334155; color: #e2e8f0; padding: 9px 12px; border-radius: 8px; font-size: 0.9rem; outline: none; width: 100%; }
     select:focus, input:focus { border-color: #3b82f6; }
-    button { background: #3b82f6; color: #fff; border: none; padding: 9px 20px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+    button { background: #3b82f6; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
     button:hover { background: #2563eb; }
+    button:disabled { background: #475569; cursor: not-allowed; }
     button.danger { background: #ef4444; }
     button.danger:hover { background: #dc2626; }
     .jobs-list { display: flex; flex-direction: column; gap: 12px; }
     .job-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px 20px; display: flex; align-items: center; gap: 16px; transition: border-color 0.3s; animation: slideIn 0.3s ease; }
+    .job-card.queued { border-color: #f59e0b; }
+    .job-card.delayed { border-color: #f97316; }
     .job-card.active { border-color: #3b82f6; }
     .job-card.completed { border-color: #22c55e; }
     .job-card.failed { border-color: #ef4444; }
+    .job-card.paused { border-color: #94a3b8; }
     @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
     .job-icon { font-size: 1.5rem; width: 40px; text-align: center; }
     .job-info { flex: 1; }
     .job-id { font-size: 0.75rem; color: #64748b; font-family: monospace; margin-bottom: 4px; }
     .job-type { font-size: 0.9rem; font-weight: 600; color: #f8fafc; }
-    .job-meta { font-size: 0.8rem; color: #94a3b8; margin-top: 2px; }
+    .job-meta { font-size: 0.8rem; color: #94a3b8; margin-top: 4px; }
     .job-status { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
-    .status-badge { font-size: 0.75rem; font-weight: 600; padding: 4px 10px; border-radius: 20px; }
+    .status-badge { font-size: 0.75rem; font-weight: 600; padding: 4px 10px; border-radius: 20px; text-transform: capitalize; }
     .status-badge.queued { background: #451a03; color: #f59e0b; }
+    .status-badge.delayed { background: #431407; color: #f97316; }
     .status-badge.active { background: #1e3a5f; color: #3b82f6; }
     .status-badge.completed { background: #052e16; color: #22c55e; }
     .status-badge.failed { background: #2d0a0a; color: #ef4444; }
+    .status-badge.paused { background: #1f2937; color: #cbd5e1; }
     .progress-bar { width: 120px; height: 4px; background: #334155; border-radius: 2px; overflow: hidden; }
     .progress-fill { height: 100%; background: #3b82f6; border-radius: 2px; transition: width 0.3s ease; }
-    .duration { font-size: 0.75rem; color: #64748b; }
-    .feed { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px; margin-top: 32px; max-height: 200px; overflow-y: auto; }
-    .feed-item { font-size: 0.8rem; font-family: monospace; color: #94a3b8; padding: 4px 0; border-bottom: 1px solid #1e293b; }
+    .feed { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px; margin-top: 32px; max-height: 240px; overflow-y: auto; }
+    .feed-item { font-size: 0.8rem; font-family: monospace; color: #94a3b8; padding: 4px 0; border-bottom: 1px solid #243041; }
     .feed-item span { color: #3b82f6; }
     .empty { text-align: center; color: #475569; padding: 40px; font-size: 0.9rem; }
+    @media (max-width: 768px) {
+      header { flex-direction: column; align-items: flex-start; }
+      .settings-grid { grid-template-columns: 1fr; }
+      .job-card { align-items: flex-start; flex-direction: column; }
+      .job-status { align-items: flex-start; }
+    }
   </style>
 </head>
 <body>
   <header>
-    <h1>⚡ Job Queue Dashboard</h1>
+    <h1>Job Queue Dashboard</h1>
     <span class="badge offline" id="conn-badge">Disconnected</span>
   </header>
 
   <div class="container">
+    <div class="panel">
+      <div class="panel-title">Connection</div>
+      <div class="settings-grid">
+        <div class="form-group">
+          <label for="api-base">API Base URL</label>
+          <input id="api-base" type="text" readonly />
+        </div>
+        <div class="form-group">
+          <label for="api-key">API Key</label>
+          <input id="api-key" type="password" placeholder="Enter the server API key" />
+        </div>
+        <button id="connect-btn" onclick="connectDashboard()">Connect</button>
+      </div>
+      <div class="setting-copy">
+        Jobs and socket connections use the current origin. Enter the API key configured on the server to load data and submit jobs.
+      </div>
+    </div>
 
-    <!-- Stats -->
     <div class="stats">
       <div class="stat">
         <div class="stat-label">Queued</div>
         <div class="stat-value queued" id="stat-queued">0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Delayed</div>
+        <div class="stat-value delayed" id="stat-delayed">0</div>
       </div>
       <div class="stat">
         <div class="stat-label">Active</div>
@@ -83,12 +121,15 @@
         <div class="stat-label">Failed</div>
         <div class="stat-value failed" id="stat-failed">0</div>
       </div>
+      <div class="stat">
+        <div class="stat-label">Paused</div>
+        <div class="stat-value paused" id="stat-paused">0</div>
+      </div>
     </div>
 
-    <!-- Submit Bar -->
     <div class="submit-bar">
       <div class="form-group">
-        <label>Job Type</label>
+        <label for="job-type">Job Type</label>
         <select id="job-type">
           <option value="email">Email</option>
           <option value="report">Report</option>
@@ -96,92 +137,241 @@
         </select>
       </div>
       <div class="form-group">
-        <label>Priority</label>
+        <label for="job-priority">Priority</label>
         <select id="job-priority">
           <option value="high">High</option>
           <option value="medium">Medium</option>
           <option value="low">Low</option>
         </select>
       </div>
-      <button onclick="submitJob()">Submit Job</button>
-      <button onclick="submitBatch()">Submit 5 Jobs</button>
+      <div class="form-group">
+        <label for="job-scheduled-for">Run At (Optional)</label>
+        <input id="job-scheduled-for" type="datetime-local" />
+      </div>
+      <button id="submit-btn" onclick="submitJob()">Submit Job</button>
+      <button id="batch-btn" onclick="submitBatch()">Submit 5 Jobs</button>
       <button class="danger" onclick="clearCompleted()">Clear Completed</button>
     </div>
 
-    <!-- Jobs List -->
     <div class="section-title">Live Jobs</div>
     <div class="jobs-list" id="jobs-list">
-      <div class="empty" id="empty-state">No jobs yet — submit one above!</div>
+      <div class="empty" id="empty-state">Connect with an API key to load jobs.</div>
     </div>
 
-    <!-- Event Feed -->
     <div class="section-title" style="margin-top: 32px;">Event Feed</div>
     <div class="feed" id="feed"></div>
-
   </div>
 
   <script>
-    const socket = io('http://localhost:3000', {
-      auth: { apiKey: 'default-dev-key' }
-    });
+    const apiBaseUrl = window.location.origin;
+    const statKeys = ['queued', 'delayed', 'active', 'completed', 'failed', 'paused'];
     const jobs = {};
-    const stats = { queued: 0, active: 0, completed: 0, failed: 0 };
+    const stats = Object.fromEntries(statKeys.map((status) => [status, 0]));
+    const jobIcons = { email: 'MAIL', report: 'RPT', notification: 'NTF' };
+    let socket = null;
+    let activeApiKey = localStorage.getItem('jobQueueApiKey') || '';
 
-    const jobIcons = { email: '📧', report: '📊', notification: '🔔' };
+    document.getElementById('api-base').value = apiBaseUrl;
+    document.getElementById('api-key').value = activeApiKey;
+    renderStats();
+    updateActionState();
 
-    // Connection
-    socket.on('connect', () => {
-      document.getElementById('conn-badge').textContent = 'Connected';
-      document.getElementById('conn-badge').classList.remove('offline');
-      addFeedItem('system', 'Connected to server');
-    });
+    if (activeApiKey) {
+      connectDashboard();
+    } else {
+      addFeedItem('system', 'Enter an API key to connect and load jobs.');
+    }
 
-    socket.on('disconnect', () => {
-      document.getElementById('conn-badge').textContent = 'Disconnected';
-      document.getElementById('conn-badge').classList.add('offline');
-      addFeedItem('system', 'Disconnected from server');
-    });
+    function normalizeStatus(status) {
+      return statKeys.includes(status) ? status : 'queued';
+    }
 
-    // Real-time job updates
-    socket.on('job:feed', (event) => {
-      updateJob(event);
-      addFeedItem(event.type, `${event.event} — ${event.jobId.slice(0, 8)}...`);
-    });
+    function setConnectionState(text, connected) {
+      const badge = document.getElementById('conn-badge');
+      badge.textContent = text;
+      badge.classList.toggle('offline', !connected);
+    }
+
+    function updateActionState() {
+      const disabled = !activeApiKey;
+      document.getElementById('submit-btn').disabled = disabled;
+      document.getElementById('batch-btn').disabled = disabled;
+    }
+
+    function ensureEmptyState(message) {
+      if (Object.keys(jobs).length === 0) {
+        document.getElementById('jobs-list').innerHTML =
+          `<div class="empty" id="empty-state">${message}</div>`;
+      }
+    }
+
+    function removeEmptyState() {
+      document.getElementById('empty-state')?.remove();
+    }
+
+    function connectDashboard() {
+      const nextApiKey = document.getElementById('api-key').value.trim();
+
+      if (!nextApiKey) {
+        activeApiKey = '';
+        localStorage.removeItem('jobQueueApiKey');
+        updateActionState();
+        setConnectionState('API Key Needed', false);
+        addFeedItem('system', 'Enter an API key before connecting.');
+        ensureEmptyState('Connect with an API key to load jobs.');
+        return;
+      }
+
+      activeApiKey = nextApiKey;
+      localStorage.setItem('jobQueueApiKey', activeApiKey);
+      updateActionState();
+
+      if (socket) {
+        socket.disconnect();
+        socket = null;
+      }
+
+      setConnectionState('Connecting', false);
+
+      socket = io(apiBaseUrl, {
+        auth: { apiKey: activeApiKey },
+      });
+
+      socket.on('connect', async () => {
+        setConnectionState('Connected', true);
+        addFeedItem('system', `Connected to ${apiBaseUrl}`);
+        await loadExistingJobs();
+      });
+
+      socket.on('disconnect', () => {
+        setConnectionState('Disconnected', false);
+        addFeedItem('system', 'Socket disconnected');
+      });
+
+      socket.on('connect_error', (error) => {
+        setConnectionState('Connection Failed', false);
+        addFeedItem('system', `Socket connection failed: ${error.message}`);
+      });
+
+      socket.on('job:feed', (event) => {
+        updateJob(event);
+        addFeedItem(event.type, `${event.event} - ${event.jobId.slice(0, 8)}...`);
+      });
+    }
+
+    async function apiRequest(path, options = {}) {
+      if (!activeApiKey) {
+        throw new Error('Enter an API key first.');
+      }
+
+      const headers = {
+        ...(options.headers || {}),
+        'x-api-key': activeApiKey,
+      };
+
+      if (options.body && !headers['Content-Type']) {
+        headers['Content-Type'] = 'application/json';
+      }
+
+      const response = await fetch(`${apiBaseUrl}${path}`, {
+        ...options,
+        headers,
+      });
+
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(payload?.message || payload?.error || `Request failed (${response.status})`);
+      }
+
+      return payload;
+    }
+
+    function resetJobs(message = 'No jobs yet - submit one above!') {
+      Object.keys(jobs).forEach((jobId) => delete jobs[jobId]);
+      statKeys.forEach((status) => {
+        stats[status] = 0;
+      });
+      renderStats();
+      ensureEmptyState(message);
+    }
+
+    async function loadExistingJobs() {
+      try {
+        const data = await apiRequest('/jobs');
+        resetJobs();
+
+        data.data.slice(0, 20).reverse().forEach((job) => {
+          updateJob({
+            jobId: job.id,
+            type: job.type,
+            status: job.status,
+            progress: 0,
+            createdAt: job.created_at,
+            scheduledFor: job.scheduled_for,
+          });
+        });
+
+        addFeedItem('system', `Loaded ${data.data.length} jobs`);
+      } catch (error) {
+        resetJobs('Unable to load jobs with the current API key.');
+        addFeedItem('system', `Failed to load jobs: ${error.message}`);
+      }
+    }
+
+    function renderStats() {
+      statKeys.forEach((status) => {
+        document.getElementById(`stat-${status}`).textContent = stats[status] || 0;
+      });
+    }
+
+    function formatTime(value) {
+      return value ? new Date(value).toLocaleString() : 'N/A';
+    }
 
     function updateJob(event) {
-      const { jobId, type, status, progress } = event;
+      const jobId = event.jobId;
+      const nextStatus = normalizeStatus(event.status);
+      const existing = jobs[jobId];
 
-      if (!jobs[jobId]) {
-        jobs[jobId] = { jobId, type, status, progress: 0, createdAt: new Date() };
-        document.getElementById('empty-state')?.remove();
+      if (!existing) {
+        jobs[jobId] = {
+          jobId,
+          type: event.type,
+          status: nextStatus,
+          progress: event.progress ?? 0,
+          createdAt: event.createdAt || new Date().toISOString(),
+          scheduledFor: event.scheduledFor || null,
+        };
+        stats[nextStatus] = (stats[nextStatus] || 0) + 1;
+        removeEmptyState();
+      } else {
+        if (existing.status !== nextStatus) {
+          if (stats[existing.status] > 0) stats[existing.status]--;
+          stats[nextStatus] = (stats[nextStatus] || 0) + 1;
+        }
+
+        jobs[jobId] = {
+          ...existing,
+          type: event.type || existing.type,
+          status: nextStatus,
+          progress: event.progress ?? existing.progress,
+          createdAt: event.createdAt || existing.createdAt,
+          scheduledFor: event.scheduledFor || existing.scheduledFor,
+        };
       }
-
-      // Update stats
-      const prev = jobs[jobId].status;
-      if (prev && prev !== status) {
-        if (stats[prev] > 0) stats[prev]--;
-        stats[status] = (stats[status] || 0) + 1;
-      } else if (!prev) {
-        stats[status] = (stats[status] || 0) + 1;
-      }
-
-      jobs[jobId].status = status;
-      if (progress !== undefined) jobs[jobId].progress = progress;
 
       renderStats();
       renderJob(jobId);
     }
 
-    function renderStats() {
-      ['queued', 'active', 'completed', 'failed'].forEach(s => {
-        document.getElementById(`stat-${s}`).textContent = stats[s] || 0;
-      });
-    }
-
     function renderJob(jobId) {
       const job = jobs[jobId];
-      const icon = jobIcons[job.type] || '⚙️';
+      const icon = jobIcons[job.type] || 'JOB';
       const existing = document.getElementById(`job-${jobId}`);
+      const scheduledMeta = job.scheduledFor
+        ? `<div class="job-meta">Scheduled: ${formatTime(job.scheduledFor)}</div>`
+        : '';
 
       const html = `
         <div class="job-card ${job.status}" id="job-${jobId}">
@@ -189,7 +379,8 @@
           <div class="job-info">
             <div class="job-id">${jobId}</div>
             <div class="job-type">${job.type.charAt(0).toUpperCase() + job.type.slice(1)} Job</div>
-            <div class="job-meta">${new Date(job.createdAt).toLocaleTimeString()}</div>
+            <div class="job-meta">Created: ${formatTime(job.createdAt)}</div>
+            ${scheduledMeta}
           </div>
           <div class="job-status">
             <span class="status-badge ${job.status}">${job.status}</span>
@@ -212,36 +403,52 @@
     function addFeedItem(type, message) {
       const feed = document.getElementById('feed');
       const time = new Date().toLocaleTimeString();
-      feed.insertAdjacentHTML('afterbegin', `
-        <div class="feed-item"><span>[${time}]</span> ${type}: ${message}</div>
-      `);
+      feed.insertAdjacentHTML(
+        'afterbegin',
+        `<div class="feed-item"><span>[${time}]</span> ${type}: ${message}</div>`,
+      );
     }
 
     async function submitJob() {
       const type = document.getElementById('job-type').value;
       const priority = document.getElementById('job-priority').value;
+      const scheduledForValue = document.getElementById('job-scheduled-for').value;
 
       const dataMap = {
         email: { to: 'user@example.com', subject: 'Hello!', body: 'Test email' },
-        report: { reportType: 'monthly', filters: {}, outputFormat: 'pdf', requestedBy: 'admin@example.com' },
+        report: {
+          reportType: 'monthly',
+          filters: {},
+          outputFormat: 'pdf',
+          requestedBy: 'admin@example.com',
+        },
         notification: { userId: 'user-123', message: 'Hello!', channel: 'push' },
       };
 
-      const res = await fetch('http://localhost:3000/jobs', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'x-api-key': 'default-dev-key'
-        },
-        body: JSON.stringify({ type, priority, data: dataMap[type] }),
-      });
+      const payload = { type, priority, data: dataMap[type] };
 
-      const job = await res.json();
-      jobs[job.jobId] = { jobId: job.jobId, type, status: 'queued', progress: 0, createdAt: new Date() };
-      stats.queued = (stats.queued || 0) + 1;
-      renderStats();
-      renderJob(job.jobId);
-      addFeedItem(type, `Submitted job ${job.jobId.slice(0, 8)}...`);
+      if (scheduledForValue) {
+        payload.scheduledFor = new Date(scheduledForValue).toISOString();
+      }
+
+      try {
+        const job = await apiRequest('/jobs', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+
+        updateJob({
+          jobId: job.jobId,
+          type: job.type,
+          status: job.status,
+          createdAt: job.createdAt,
+          scheduledFor: job.scheduledFor,
+        });
+
+        addFeedItem(type, `Submitted ${job.status} job ${job.jobId.slice(0, 8)}...`);
+      } catch (error) {
+        addFeedItem(type, `Failed to submit job: ${error.message}`);
+      }
     }
 
     async function submitBatch() {
@@ -251,39 +458,22 @@
         document.getElementById('job-type').value = types[i % 3];
         document.getElementById('job-priority').value = priorities[i % 3];
         await submitJob();
-        await new Promise(r => setTimeout(r, 200));
+        await new Promise((resolve) => setTimeout(resolve, 200));
       }
     }
 
     function clearCompleted() {
-      Object.keys(jobs).forEach(id => {
-        if (jobs[id].status === 'completed') {
-          document.getElementById(`job-${id}`)?.remove();
+      Object.keys(jobs).forEach((jobId) => {
+        if (jobs[jobId].status === 'completed') {
+          document.getElementById(`job-${jobId}`)?.remove();
           if (stats.completed > 0) stats.completed--;
-          delete jobs[id];
+          delete jobs[jobId];
         }
       });
-      renderStats();
-      if (Object.keys(jobs).length === 0) {
-        document.getElementById('jobs-list').innerHTML =
-          '<div class="empty" id="empty-state">No jobs yet — submit one above!</div>';
-      }
-    }
 
-    // Load existing jobs on page load
-    fetch('http://localhost:3000/jobs', {
-      headers: { 'x-api-key': 'default-dev-key' }
-    })
-      .then(r => r.json())
-      .then(data => {
-        data.data.slice(0, 20).reverse().forEach(job => {
-          jobs[job.id] = { jobId: job.id, type: job.type, status: job.status, progress: 0, createdAt: job.created_at };
-          stats[job.status] = (stats[job.status] || 0) + 1;
-          document.getElementById('empty-state')?.remove();
-          renderJob(job.id);
-        });
-        renderStats();
-      });
+      renderStats();
+      ensureEmptyState('No jobs yet - submit one above!');
+    }
   </script>
 </body>
 </html>

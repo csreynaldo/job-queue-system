@@ -47,7 +47,14 @@ export interface JobResult {
 }
 
 export interface JobEvent {
-  event: 'job:queued' | 'job:active' | 'job:completed' | 'job:failed' | 'job:progress';
+  event:
+    | 'job:queued'
+    | 'job:delayed'
+    | 'job:active'
+    | 'job:completed'
+    | 'job:failed'
+    | 'job:paused'
+    | 'job:progress';
   jobId: string;
   type: JobType;
   status: JobStatus;

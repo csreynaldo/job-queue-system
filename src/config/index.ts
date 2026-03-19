@@ -25,7 +25,7 @@ export const config = {
   },
   db: {
     host: requireEnv('DB_HOST', 'localhost'),
-    port: parseInt(requireEnv('DB_PORT', '5432'), 10),
+    port: parseInt(requireEnv('DB_PORT', '5433'), 10),
     name: requireEnv('DB_NAME', 'jobqueue'),
     user: requireEnv('DB_USER', 'postgres'),
     password:
