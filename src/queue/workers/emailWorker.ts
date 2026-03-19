@@ -4,7 +4,7 @@ import path from 'path';
 import emailProcessor from '../processors/emailProcessor';
 import { logger } from '../../config/logger';
 import { config } from '../../config';
-import { updateJobStatus, getJobByBullId } from '../../db/jobRepository';
+import { updateJobStatus } from '../../db/jobRepository';
 import { emitJobStatus } from '../events/jobEvents';
 import {
   jobsCompletedTotal,
@@ -14,8 +14,11 @@ import {
 } from '../../monitoring/metrics';
 
 export const createEmailWorker = (): Worker => {
-  const processorFile = path.join(__dirname, `../processors/emailProcessor${path.extname(__filename)}`);
-  
+  const processorFile = path.join(
+    __dirname,
+    `../processors/emailProcessor${path.extname(__filename)}`,
+  );
+
   // Use direct function in Dev to bypass Windows+TSX process loader limitations
   const processor = config.app.isDev ? emailProcessor : processorFile;
 

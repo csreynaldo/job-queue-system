@@ -54,10 +54,7 @@ export const createJob = async (input: CreateJobRecord): Promise<JobRecord> => {
 // Get job by ID
 // ================================
 export const getJobById = async (id: string): Promise<JobRecord | null> => {
-  const { rows } = await db.query<JobRecord>(
-    `SELECT * FROM jobs WHERE id = $1`,
-    [id],
-  );
+  const { rows } = await db.query<JobRecord>(`SELECT * FROM jobs WHERE id = $1`, [id]);
   return rows[0] ?? null;
 };
 
@@ -65,10 +62,9 @@ export const getJobById = async (id: string): Promise<JobRecord | null> => {
 // Get job by BullMQ job ID
 // ================================
 export const getJobByBullId = async (bullJobId: string): Promise<JobRecord | null> => {
-  const { rows } = await db.query<JobRecord>(
-    `SELECT * FROM jobs WHERE bull_job_id = $1`,
-    [bullJobId],
-  );
+  const { rows } = await db.query<JobRecord>(`SELECT * FROM jobs WHERE bull_job_id = $1`, [
+    bullJobId,
+  ]);
   return rows[0] ?? null;
 };
 
@@ -100,7 +96,7 @@ export const updateJobStatus = async (
      RETURNING *`,
     [
       status,
-      extra?.result ? JSON.stringify(extra.result) : null,
+      extra?.result !== undefined ? JSON.stringify(extra.result) : null,
       extra?.error ?? null,
       extra?.duration_ms ?? null,
       extra?.started_at ?? null,

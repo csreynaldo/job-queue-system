@@ -8,8 +8,12 @@ export const emitJobStatus = (
   status: JobStatus,
   extra?: { progress?: number; error?: string },
 ): void => {
+  // If a progress update is present, emit `job:progress` even if the job status is still `active`.
+  const eventName: JobEvent['event'] =
+    extra?.progress !== undefined ? 'job:progress' : (`job:${status}` as JobEvent['event']);
+
   const event: JobEvent = {
-    event: `job:${status}` as JobEvent['event'],
+    event: eventName,
     jobId,
     type,
     status,

@@ -14,8 +14,11 @@ import {
 } from '../../monitoring/metrics';
 
 export const createReportWorker = (): Worker => {
-  const processorFile = path.join(__dirname, `../processors/reportProcessor${path.extname(__filename)}`);
-  
+  const processorFile = path.join(
+    __dirname,
+    `../processors/reportProcessor${path.extname(__filename)}`,
+  );
+
   // Use direct function in Dev to bypass Windows+TSX process loader limitations
   const processor = config.app.isDev ? reportProcessor : processorFile;
 
@@ -58,7 +61,8 @@ export const createReportWorker = (): Worker => {
   worker.on('progress', async (job, progress) => {
     logger.info(`📊 Report job ${job.id} progress: ${progress}%`);
     const record = await getJobByBullId(`report-${job.id!}`);
-    if (record) emitJobStatus(record.id, job.id!, 'report', 'active', { progress: progress as number });
+    if (record)
+      emitJobStatus(record.id, job.id!, 'report', 'active', { progress: progress as number });
   });
 
   worker.on('stalled', (jobId) => {

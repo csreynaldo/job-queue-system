@@ -2,9 +2,7 @@ import type { Job } from 'bullmq';
 import { logger } from '../../config/logger';
 import type { ReportJobData } from '../../types/job.types';
 
-export default async (
-  job: Job<ReportJobData>,
-): Promise<{ generated: boolean; format: string }> => {
+export default async (job: Job<ReportJobData>): Promise<{ generated: boolean; format: string }> => {
   logger.info(`📊 Processing report job ${job.id}`, {
     type: job.data.reportType,
     format: job.data.outputFormat,

@@ -6,7 +6,7 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm ci
 
 COPY tsconfig.json ./
 COPY src/ ./src/
@@ -27,8 +27,10 @@ COPY package*.json ./
 RUN npm ci --only=production && npm cache clean --force
 
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/src/public ./src/public
-COPY --from=builder /app/src/db/schema.sql ./src/db/schema.sql
+# Express serves from `dist/public` (see `src/api/server.ts`)
+COPY --from=builder /app/src/public ./dist/public
+# Migration runner reads `schema.sql` relative to `dist/db` (see `src/db/migrate.ts`)
+COPY --from=builder /app/src/db/schema.sql ./dist/db/schema.sql
 
 EXPOSE 3000
 

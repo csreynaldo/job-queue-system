@@ -26,17 +26,19 @@ const limiter = rateLimit({
   legacyHeaders: false,
 });
 
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.socket.io"],
-      scriptSrcAttr: ["'unsafe-inline'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      connectSrc: ["'self'", "ws:", "wss:", "http://localhost:3000"],
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", 'https://cdn.socket.io'],
+        scriptSrcAttr: ["'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        connectSrc: ["'self'", 'ws:', 'wss:', 'http://localhost:3000'],
+      },
     },
-  },
-}));
+  }),
+);
 app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:3000' }));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -68,7 +70,12 @@ const bootstrap = async (): Promise<void> => {
       logger.info(`📋 Dashboard: http://localhost:${config.app.port}/dashboard.html`);
       logger.info(`📊 Metrics: http://localhost:${config.app.port}/metrics`);
       logger.info(`🔌 WebSocket ready on ws://localhost:${config.app.port}`);
-      startWorkerPool();
+      // In production, run the worker pool in a separate process/container.
+      if (config.app.isDev) {
+        startWorkerPool();
+      } else {
+        logger.info('Worker pool is started separately in production');
+      }
     });
   } catch (err) {
     logger.error('❌ Failed to start server:', { error: (err as Error).message });
@@ -78,7 +85,9 @@ const bootstrap = async (): Promise<void> => {
 
 process.on('SIGTERM', async () => {
   logger.info('Shutting down gracefully...');
-  const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Shutdown timeout')), 15000));
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('Shutdown timeout')), 15000),
+  );
   try {
     await Promise.race([stopWorkerPool(), timeout]);
   } catch (err) {

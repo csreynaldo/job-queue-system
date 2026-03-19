@@ -18,9 +18,7 @@ export const CreateJobSchema = z.object({
 // List Jobs Query Schema
 // ================================
 export const ListJobsSchema = z.object({
-  status: z
-    .enum(['queued', 'active', 'completed', 'failed', 'delayed', 'paused'])
-    .optional(),
+  status: z.enum(['queued', 'active', 'completed', 'failed', 'delayed', 'paused']).optional(),
   type: z.enum(['email', 'report', 'notification']).optional(),
   limit: z.coerce.number().min(1).max(100).default(20),
   cursor: z.string().datetime().optional(),

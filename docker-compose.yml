@@ -1,6 +1,54 @@
 version: '3.9'
 
 services:
+  jobqueue-api:
+    build: .
+    container_name: jobqueue_api
+    command: ["sh", "-c", "node dist/db/migrate.js && node dist/api/server.js"]
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      API_KEY: default-dev-key
+      FRONTEND_URL: http://localhost:3000
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: jobqueue
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      WORKER_CONCURRENCY: 5
+      MAX_RETRY_ATTEMPTS: 3
+      RETRY_DELAY_MS: 1000
+    ports:
+      - '3000:3000'
+    depends_on:
+      - redis
+      - postgres
+
+  jobqueue-worker:
+    build: .
+    container_name: jobqueue_worker
+    command: ["sh", "-c", "node dist/db/migrate.js && node dist/queue/workers/workerPool.js"]
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      API_KEY: default-dev-key
+      FRONTEND_URL: http://localhost:3000
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: jobqueue
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      WORKER_CONCURRENCY: 5
+      MAX_RETRY_ATTEMPTS: 3
+      RETRY_DELAY_MS: 1000
+    depends_on:
+      - redis
+      - postgres
+
   redis:
     image: redis:7-alpine
     container_name: jobqueue_redis

@@ -28,9 +28,12 @@ export const config = {
     port: parseInt(requireEnv('DB_PORT', '5432'), 10),
     name: requireEnv('DB_NAME', 'jobqueue'),
     user: requireEnv('DB_USER', 'postgres'),
-    password: (process.env.NODE_ENV === 'production' && !process.env.DB_PASSWORD)
-      ? (() => { throw new Error('DB_PASSWORD must be strictly defined in production'); })()
-      : process.env.DB_PASSWORD ?? '',
+    password:
+      process.env.NODE_ENV === 'production' && !process.env.DB_PASSWORD
+        ? (() => {
+            throw new Error('DB_PASSWORD must be strictly defined in production');
+          })()
+        : (process.env.DB_PASSWORD ?? ''),
   },
   worker: {
     concurrency: parseInt(requireEnv('WORKER_CONCURRENCY', '5'), 10),

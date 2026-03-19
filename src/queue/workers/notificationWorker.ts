@@ -4,7 +4,7 @@ import path from 'path';
 import notificationProcessor from '../processors/notificationProcessor';
 import { logger } from '../../config/logger';
 import { config } from '../../config';
-import { updateJobStatus, getJobByBullId } from '../../db/jobRepository';
+import { updateJobStatus } from '../../db/jobRepository';
 import { emitJobStatus } from '../events/jobEvents';
 import {
   jobsCompletedTotal,
@@ -14,8 +14,11 @@ import {
 } from '../../monitoring/metrics';
 
 export const createNotificationWorker = (): Worker => {
-  const processorFile = path.join(__dirname, `../processors/notificationProcessor${path.extname(__filename)}`);
-  
+  const processorFile = path.join(
+    __dirname,
+    `../processors/notificationProcessor${path.extname(__filename)}`,
+  );
+
   // Use direct function in Dev to bypass Windows+TSX process loader limitations
   const processor = config.app.isDev ? notificationProcessor : processorFile;
 
@@ -27,7 +30,9 @@ export const createNotificationWorker = (): Worker => {
   worker.on('active', async (job) => {
     logger.info(`⚡ Notification job ${job.id} started`);
     jobsActiveGauge.labels('notification').inc();
-    const record = await updateJobStatus(`notification-${job.id!}`, 'active', { started_at: new Date() });
+    const record = await updateJobStatus(`notification-${job.id!}`, 'active', {
+      started_at: new Date(),
+    });
     if (record) emitJobStatus(record.id, job.id!, 'notification', 'active');
   });
 
@@ -52,7 +57,8 @@ export const createNotificationWorker = (): Worker => {
       error: err.message,
       attempts: job?.attemptsMade,
     });
-    if (record) emitJobStatus(record.id, job?.id!, 'notification', 'failed', { error: err.message });
+    if (record)
+      emitJobStatus(record.id, job?.id!, 'notification', 'failed', { error: err.message });
   });
 
   worker.on('stalled', (jobId) => {

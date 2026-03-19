@@ -4,7 +4,12 @@ import { logger } from '../config/logger';
 // Use connection string to bypass SASL password issue
 const connectionString = `postgresql://${process.env.DB_USER || 'postgres'}:${process.env.DB_PASSWORD || 'postgres'}@${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || '5433'}/${process.env.DB_NAME || 'jobqueue'}`;
 
-console.info('Connecting with string:', connectionString);
+logger.info('Connecting to PostgreSQL', {
+  host: process.env.DB_HOST || 'localhost',
+  port: process.env.DB_PORT || '5433',
+  db: process.env.DB_NAME || 'jobqueue',
+  user: process.env.DB_USER || 'postgres',
+});
 
 export const db = new Pool({
   connectionString,
