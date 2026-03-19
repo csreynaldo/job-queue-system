@@ -9,7 +9,7 @@ export const redisConnection = new IORedis({
   maxRetriesPerRequest: null,   // ✅ Required by BullMQ
   enableReadyCheck: false,      // ✅ Required by BullMQ
   retryStrategy: (times) => Math.min(times * 50, 2000),
-});
+}) as any;
 
 redisConnection.on('error', (err: Error) => {
   logger.error('❌ Redis client error:', { error: err.message });
