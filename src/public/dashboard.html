@@ -121,7 +121,9 @@
   </div>
 
   <script>
-    const socket = io('http://localhost:3000');
+    const socket = io('http://localhost:3000', {
+      auth: { apiKey: 'default-dev-key' }
+    });
     const jobs = {};
     const stats = { queued: 0, active: 0, completed: 0, failed: 0 };
 
@@ -227,7 +229,10 @@
 
       const res = await fetch('http://localhost:3000/jobs', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-api-key': 'default-dev-key'
+        },
         body: JSON.stringify({ type, priority, data: dataMap[type] }),
       });
 
@@ -266,7 +271,9 @@
     }
 
     // Load existing jobs on page load
-    fetch('http://localhost:3000/jobs')
+    fetch('http://localhost:3000/jobs', {
+      headers: { 'x-api-key': 'default-dev-key' }
+    })
       .then(r => r.json())
       .then(data => {
         data.data.slice(0, 20).reverse().forEach(job => {

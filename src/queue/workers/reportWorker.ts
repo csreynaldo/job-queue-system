@@ -1,6 +1,7 @@
 import { Worker } from 'bullmq';
 import { redisConnection } from '../../config/redis';
 import path from 'path';
+import reportProcessor from '../processors/reportProcessor';
 import { logger } from '../../config/logger';
 import { config } from '../../config';
 import { updateJobStatus, getJobByBullId } from '../../db/jobRepository';
@@ -14,7 +15,11 @@ import {
 
 export const createReportWorker = (): Worker => {
   const processorFile = path.join(__dirname, `../processors/reportProcessor${path.extname(__filename)}`);
-  const worker = new Worker('report', processorFile, {
+  
+  // Use direct function in Dev to bypass Windows+TSX process loader limitations
+  const processor = config.app.isDev ? reportProcessor : processorFile;
+
+  const worker = new Worker('report', processor, {
     connection: redisConnection,
     concurrency: config.worker.concurrency,
   });
