@@ -12,7 +12,12 @@ import type { JobType } from '../../types/job.types';
 import { logger } from '../../config/logger';
 import { jobsSubmittedTotal } from '../../monitoring/metrics';
 
+import { requireApiKey } from '../middleware/auth';
+
 const router = Router();
+
+// Apply auth middleware to all job routes
+router.use(requireApiKey);
 
 const getQueue = (type: JobType) => {
   switch (type) {
