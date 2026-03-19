@@ -8,6 +8,7 @@ import { connectRedis } from '../config/redis';
 import { connectDB } from '../db/database';
 import { errorHandler, notFound } from './middleware/errorhandler';
 import healthRoutes from './routes/health.routes';
+import { startWorkerPool, stopWorkerPool } from '../queue/workers/workerPool';
 
 const app = express();
 const httpServer = createServer(app);
@@ -42,6 +43,7 @@ const bootstrap = async (): Promise<void> => {
     httpServer.listen(config.app.port, () => {
       logger.info(`🚀 Server running on http://localhost:${config.app.port}`);
       logger.info(`📋 Health check: http://localhost:${config.app.port}/health`);
+      startWorkerPool();
     });
   } catch (err) {
     logger.error('❌ Failed to start server:', { error: (err as Error).message });
@@ -51,6 +53,7 @@ const bootstrap = async (): Promise<void> => {
 
 process.on('SIGTERM', async () => {
   logger.info('Shutting down gracefully...');
+  await stopWorkerPool();
   httpServer.close(() => process.exit(0));
 });
 

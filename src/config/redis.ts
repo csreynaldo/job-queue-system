@@ -1,12 +1,13 @@
-import Redis from 'ioredis';
+import IORedis from 'ioredis';
 import { config } from './index';
 import { logger } from './logger';
 
-export const redisConnection = new Redis({
+export const redisConnection = new IORedis({
   host: config.redis.host,
   port: config.redis.port,
   password: config.redis.password,
-  db: 0,
+  maxRetriesPerRequest: null,   // ✅ Required by BullMQ
+  enableReadyCheck: false,      // ✅ Required by BullMQ
   retryStrategy: (times) => Math.min(times * 50, 2000),
 });
 
