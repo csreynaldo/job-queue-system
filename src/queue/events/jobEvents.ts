@@ -3,7 +3,7 @@ import type { JobEvent, JobType, JobStatus } from '../../types/job.types';
 
 export const emitJobStatus = (
   jobId: string,
-  bullJobId: string,
+  _bullJobId: string,
   type: JobType,
   status: JobStatus,
   extra?: { progress?: number; error?: string },
