@@ -1,38 +1,22 @@
-# ⚡ Distributed Job Queue System
+# Distributed Job Queue System
 
 A production-grade distributed job queue system built with Node.js, TypeScript, BullMQ, Redis, and PostgreSQL. Features real-time job tracking via WebSockets, a live dashboard, Prometheus metrics, and Grafana monitoring.
 
 ---
 
-## 🏗️ Architecture
-```mermaid
-flowchart TD
-    Client[API Consumer / Web Dashboard]
-    API[Express HTTP Server]
-    WSS[Socket.io WebSockets]
-    Postgres[(PostgreSQL)]
-    Redis[(Redis Cache / Queue)]
-    Email[Email Sandbox Process]
-    Report[Report Sandbox Process]
-    Notify[Notification Sandbox Process]
+## Architecture
 
-    Client -- "POST /jobs (x-api-key)" --> API
-    Client -- "ws:// live stream" --> WSS
-    
-    API -- "1. Enqueue Job" --> Redis
-    API -- "2. Audit Log" --> Postgres
-    
-    Redis -- "Pulls Tasks" --> Email
-    Redis -- "Pulls Tasks" --> Report
-    Redis -- "Pulls Tasks" --> Notify
-    
-    Email -- "3. Update Status" --> Postgres
-    Postgres -- "4. Broadcast" --> WSS
-```
+The system is designed with a strict physical and logical separation between the API interface and background processing:
+
+1. **API Server (Express):** Receives incoming HTTP requests, performs payload validation against Zod schemas, and pushes raw tasks to the Redis cache. It also manages authentication headers (`x-api-key`) and logs the initial job intent to PostgreSQL.
+2. **Persistence & Auditing (PostgreSQL):** Serves as the ultimate source of truth. It records the full lifecycle of every job from intent (`queued`) to resolution (`completed` or `failed`), guaranteeing complete observability.
+3. **Queue Mechanism (Redis + BullMQ):** Handles the high-throughput task queueing, leveraging exponential backoffs and dead-letter queues to maintain resilient data flows.
+4. **Sandboxed Worker Pool:** Independent Node.js processes subscribe to Redis queues. These functions (`email`, `report`, `notification`) run in isolated sandboxes, ensuring heavy CPU operations do not block the main Express event loop. Once a task terminates, workers update the PostgreSQL row.
+5. **Real-time Event Bus (Socket.io):** Actively listens for job lifecycle mutations across the database and seamlessly streams `status` arrays to active WebSockets, powering the integrated dashboard.
 
 ---
 
-## 🚀 Features
+## Features
 
 - **3 job types** — email, report, notification
 - **Priority queues** — high, medium, low
@@ -49,7 +33,7 @@ flowchart TD
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 |---|---|
@@ -67,7 +51,7 @@ flowchart TD
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 ```
 job-queue-system/
 ├── src/
@@ -96,7 +80,7 @@ job-queue-system/
 
 ---
 
-## ⚡ Quick Start
+## Quick Start
 
 ### Prerequisites
 - Node.js 20+
@@ -135,7 +119,7 @@ npm run dev
 
 ---
 
-## 🌐 Local URLs
+## Local URLs
 
 | Service | URL |
 |---|---|
@@ -149,7 +133,7 @@ npm run dev
 
 ---
 
-## 📡 API Endpoints
+## API Endpoints
 
 > **Security Note:** All requests to `/jobs` endpoints must include the `x-api-key` header! Rate Limiting is strictly capped at 100 requests / 15mins per IP.
 
@@ -190,7 +174,7 @@ x-api-key: your-secure-key
 
 ---
 
-## 📊 Prometheus Metrics
+## Prometheus Metrics
 
 | Metric | Type | Description |
 |---|---|---|
@@ -204,7 +188,7 @@ x-api-key: your-secure-key
 
 ---
 
-## 🧪 Running Tests
+## Running Tests
 ```bash
 npm test
 npm run test:coverage
@@ -212,7 +196,7 @@ npm run test:coverage
 
 ---
 
-## 🏭 Production Build
+## Production Build
 ```bash
 npm run build
 docker build -t job-queue-system .
@@ -220,7 +204,7 @@ docker build -t job-queue-system .
 
 ---
 
-## 🔧 Environment Variables
+## Environment Variables
 
 | Variable | Default | Description |
 |---|---|---|
@@ -241,6 +225,6 @@ docker build -t job-queue-system .
 
 ---
 
-## 📄 License
+## License
 
 MIT
