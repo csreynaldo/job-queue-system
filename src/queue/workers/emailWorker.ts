@@ -1,6 +1,6 @@
 import { Worker } from 'bullmq';
 import { redisConnection } from '../../config/redis';
-import { emailProcessor } from '../processors/emailProcessor';
+import path from 'path';
 import { logger } from '../../config/logger';
 import { config } from '../../config';
 import { updateJobStatus, getJobByBullId } from '../../db/jobRepository';
@@ -13,7 +13,8 @@ import {
 } from '../../monitoring/metrics';
 
 export const createEmailWorker = (): Worker => {
-  const worker = new Worker('email', emailProcessor, {
+  const processorFile = path.join(__dirname, `../processors/emailProcessor${path.extname(__filename)}`);
+  const worker = new Worker('email', processorFile, {
     connection: redisConnection,
     concurrency: config.worker.concurrency,
   });
@@ -21,8 +22,7 @@ export const createEmailWorker = (): Worker => {
   worker.on('active', async (job) => {
     logger.info(`⚡ Email job ${job.id} started`);
     jobsActiveGauge.labels('email').inc();
-    await updateJobStatus(`email-${job.id!}`, 'active', { started_at: new Date() });
-    const record = await getJobByBullId(`email-${job.id!}`);
+    const record = await updateJobStatus(`email-${job.id!}`, 'active', { started_at: new Date() });
     if (record) emitJobStatus(record.id, job.id!, 'email', 'active');
   });
 
@@ -31,12 +31,11 @@ export const createEmailWorker = (): Worker => {
     jobsActiveGauge.labels('email').dec();
     jobsCompletedTotal.labels('email').inc();
     jobDurationHistogram.labels('email').observe(Date.now() - job.timestamp);
-    await updateJobStatus(`email-${job.id!}`, 'completed', {
+    const record = await updateJobStatus(`email-${job.id!}`, 'completed', {
       result: job.returnvalue,
       completed_at: new Date(),
       duration_ms: Date.now() - job.timestamp,
     });
-    const record = await getJobByBullId(`email-${job.id!}`);
     if (record) emitJobStatus(record.id, job.id!, 'email', 'completed');
   });
 
@@ -44,11 +43,10 @@ export const createEmailWorker = (): Worker => {
     logger.error(`❌ Email job ${job?.id} failed`, { error: err.message });
     jobsActiveGauge.labels('email').dec();
     jobsFailedTotal.labels('email').inc();
-    await updateJobStatus(`email-${job?.id!}`, 'failed', {
+    const record = await updateJobStatus(`email-${job?.id!}`, 'failed', {
       error: err.message,
       attempts: job?.attemptsMade,
     });
-    const record = await getJobByBullId(`email-${job?.id!}`);
     if (record) emitJobStatus(record.id, job?.id!, 'email', 'failed', { error: err.message });
   });
 

@@ -2,15 +2,26 @@ import { Server as SocketIOServer } from 'socket.io';
 import type { Server as HTTPServer } from 'http';
 import { logger } from '../config/logger';
 import type { JobEvent } from '../types/job.types';
+import { config } from '../config';
 
 let io: SocketIOServer;
 
 export const initSocketServer = (httpServer: HTTPServer): SocketIOServer => {
   io = new SocketIOServer(httpServer, {
     cors: {
-      origin: '*',
+      origin: config.app.frontendUrl,
       methods: ['GET', 'POST'],
     },
+  });
+
+  io.use((socket, next) => {
+    const apiKey = socket.handshake.auth?.apiKey || socket.handshake.query?.apiKey;
+    if (apiKey === config.app.apiKey) {
+      next();
+    } else {
+      logger.warn(`🚫 Unauthorized socket connection attempt`, { ip: socket.handshake.address });
+      next(new Error('Unauthorized'));
+    }
   });
 
   io.on('connection', (socket) => {

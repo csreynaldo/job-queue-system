@@ -1,8 +1,7 @@
 import type { Job } from 'bullmq';
 import { logger } from '../../config/logger';
 import type { EmailJobData } from '../../types/job.types';
-
-export const emailProcessor = async (job: Job<EmailJobData>): Promise<{ sent: boolean; to: string }> => {
+export default async (job: Job<EmailJobData>): Promise<{ sent: boolean; to: string }> => {
   logger.info(`📧 Processing email job ${job.id}`, {
     to: job.data.to,
     subject: job.data.subject,

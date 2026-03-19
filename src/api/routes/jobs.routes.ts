@@ -3,7 +3,7 @@ import type { Request, Response } from 'express';
 import { emailQueue } from '../../queue/queues/emailQueue';
 import { reportQueue } from '../../queue/queues/reportQueue';
 import { notificationQueue } from '../../queue/queues/notificationQueue';
-import { createJob, getJobById, listJobs } from '../../db/jobRepository';
+import { createJob, getJobById, listJobs, updateJobStatus } from '../../db/jobRepository';
 import { CreateJobSchema, ListJobsSchema, JobIdSchema } from '../validators/job.validators';
 import { AppError } from '../middleware/errorHandler';
 import { asyncHandler } from '../middleware/asyncHandler';
@@ -13,6 +13,8 @@ import { logger } from '../../config/logger';
 import { jobsSubmittedTotal } from '../../monitoring/metrics';
 
 import { requireApiKey } from '../middleware/auth';
+
+import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 
@@ -39,17 +41,28 @@ router.post('/', asyncHandler(async (req: Request, res: Response) => {
   const { type, priority, data, scheduledFor } = parsed.data;
   const queue = getQueue(type);
 
-  const bullJob = await queue.add(`${type}-job`, data, {
-    priority: PRIORITY_MAP[priority],
-    delay: scheduledFor ? new Date(scheduledFor).getTime() - Date.now() : undefined,
-  });
-
+  // 1. Generate ID and save to database first
+  const bullJobId = uuidv4();
   const jobRecord = await createJob({
-    bull_job_id: bullJob.id!,
+    bull_job_id: bullJobId,
     type,
     priority,
     data: data as Record<string, unknown>,
   });
+
+  // 2. Dispatch to BullMQ safely
+  let bullJob;
+  try {
+    bullJob = await queue.add(`${type}-job`, data, {
+      jobId: bullJobId,
+      priority: PRIORITY_MAP[priority],
+      delay: scheduledFor ? new Date(scheduledFor).getTime() - Date.now() : undefined,
+    });
+  } catch (err) {
+    logger.error('❌ Failed to dispatch job to BullMQ', { error: (err as Error).message });
+    await updateJobStatus(`${type}-${bullJobId}`, 'failed', { error: (err as Error).message });
+    throw new AppError(500, 'Failed to enqueue job');
+  }
 
   jobsSubmittedTotal.labels(type, priority).inc();
 
@@ -75,12 +88,13 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
   }
 
   const jobs = await listJobs(parsed.data);
+  const nextCursor = jobs.length > 0 ? jobs[jobs.length - 1].created_at.toISOString() : null;
 
   res.json({
     data: jobs,
     pagination: {
       limit: parsed.data.limit,
-      offset: parsed.data.offset,
+      nextCursor,
       count: jobs.length,
     },
   });

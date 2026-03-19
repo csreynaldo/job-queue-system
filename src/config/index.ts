@@ -16,6 +16,7 @@ export const config = {
     port: parseInt(requireEnv('PORT', '3000'), 10),
     isDev: (process.env.NODE_ENV ?? 'development') === 'development',
     apiKey: requireEnv('API_KEY', 'default-dev-key'),
+    frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
   },
   redis: {
     host: requireEnv('REDIS_HOST', 'localhost'),

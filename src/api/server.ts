@@ -77,7 +77,12 @@ const bootstrap = async (): Promise<void> => {
 
 process.on('SIGTERM', async () => {
   logger.info('Shutting down gracefully...');
-  await stopWorkerPool();
+  const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Shutdown timeout')), 15000));
+  try {
+    await Promise.race([stopWorkerPool(), timeout]);
+  } catch (err) {
+    logger.error('Worker pool shutdown timed out or failed', { error: (err as Error).message });
+  }
   httpServer.close(() => process.exit(0));
 });
 

@@ -1,6 +1,6 @@
 import { Worker } from 'bullmq';
 import { redisConnection } from '../../config/redis';
-import { notificationProcessor } from '../processors/notificationProcessor';
+import path from 'path';
 import { logger } from '../../config/logger';
 import { config } from '../../config';
 import { updateJobStatus, getJobByBullId } from '../../db/jobRepository';
@@ -13,7 +13,8 @@ import {
 } from '../../monitoring/metrics';
 
 export const createNotificationWorker = (): Worker => {
-  const worker = new Worker('notification', notificationProcessor, {
+  const processorFile = path.join(__dirname, `../processors/notificationProcessor${path.extname(__filename)}`);
+  const worker = new Worker('notification', processorFile, {
     connection: redisConnection,
     concurrency: config.worker.concurrency,
   });
@@ -21,8 +22,7 @@ export const createNotificationWorker = (): Worker => {
   worker.on('active', async (job) => {
     logger.info(`⚡ Notification job ${job.id} started`);
     jobsActiveGauge.labels('notification').inc();
-    await updateJobStatus(`notification-${job.id!}`, 'active', { started_at: new Date() });
-    const record = await getJobByBullId(`notification-${job.id!}`);
+    const record = await updateJobStatus(`notification-${job.id!}`, 'active', { started_at: new Date() });
     if (record) emitJobStatus(record.id, job.id!, 'notification', 'active');
   });
 
@@ -31,12 +31,11 @@ export const createNotificationWorker = (): Worker => {
     jobsActiveGauge.labels('notification').dec();
     jobsCompletedTotal.labels('notification').inc();
     jobDurationHistogram.labels('notification').observe(Date.now() - job.timestamp);
-    await updateJobStatus(`notification-${job.id!}`, 'completed', {
+    const record = await updateJobStatus(`notification-${job.id!}`, 'completed', {
       result: job.returnvalue,
       completed_at: new Date(),
       duration_ms: Date.now() - job.timestamp,
     });
-    const record = await getJobByBullId(`notification-${job.id!}`);
     if (record) emitJobStatus(record.id, job.id!, 'notification', 'completed');
   });
 
@@ -44,11 +43,10 @@ export const createNotificationWorker = (): Worker => {
     logger.error(`❌ Notification job ${job?.id} failed`, { error: err.message });
     jobsActiveGauge.labels('notification').dec();
     jobsFailedTotal.labels('notification').inc();
-    await updateJobStatus(`notification-${job?.id!}`, 'failed', {
+    const record = await updateJobStatus(`notification-${job?.id!}`, 'failed', {
       error: err.message,
       attempts: job?.attemptsMade,
     });
-    const record = await getJobByBullId(`notification-${job?.id!}`);
     if (record) emitJobStatus(record.id, job?.id!, 'notification', 'failed', { error: err.message });
   });
 

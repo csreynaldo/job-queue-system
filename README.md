@@ -5,23 +5,29 @@ A production-grade distributed job queue system built with Node.js, TypeScript, 
 ---
 
 ## 🏗️ Architecture
-```
-Client / API Consumer
-        │ HTTP REST / WebSocket
-        ▼
-API Server (Express + TypeScript)
-  POST /jobs  GET /jobs/:id  WS /jobs/live
-        │
-  ┌─────┴──────────┐
-  │                │
-PostgreSQL      Redis (BullMQ)
-(job logs)      (job queues)
-                │
-        Worker Pool
-   Worker 1 | Worker 2 | Worker 3
-        │
-  Prometheus + Grafana
-  (monitoring dashboard)
+```mermaid
+flowchart TD
+    Client[API Consumer / Web Dashboard]
+    API[Express HTTP Server]
+    WSS[Socket.io WebSockets]
+    Postgres[(PostgreSQL)]
+    Redis[(Redis Cache / Queue)]
+    Email[Email Sandbox Process]
+    Report[Report Sandbox Process]
+    Notify[Notification Sandbox Process]
+
+    Client -- "POST /jobs (x-api-key)" --> API
+    Client -- "ws:// live stream" --> WSS
+    
+    API -- "1. Enqueue Job" --> Redis
+    API -- "2. Audit Log" --> Postgres
+    
+    Redis -- "Pulls Tasks" --> Email
+    Redis -- "Pulls Tasks" --> Report
+    Redis -- "Pulls Tasks" --> Notify
+    
+    Email -- "3. Update Status" --> Postgres
+    Postgres -- "4. Broadcast" --> WSS
 ```
 
 ---
@@ -145,10 +151,13 @@ npm run dev
 
 ## 📡 API Endpoints
 
+> **Security Note:** All requests to `/jobs` endpoints must include the `x-api-key` header! Rate Limiting is strictly capped at 100 requests / 15mins per IP.
+
 ### Submit a Job
 ```http
 POST /jobs
 Content-Type: application/json
+x-api-key: your-secure-key
 
 {
   "type": "email",
@@ -161,19 +170,22 @@ Content-Type: application/json
 }
 ```
 
-### List Jobs
+### List Jobs (Cursor Pagination)
 ```http
-GET /jobs?status=completed&type=email&limit=20&offset=0
+GET /jobs?status=completed&type=email&limit=20&cursor=2026-03-20T12:00:00.000Z
+x-api-key: your-secure-key
 ```
 
 ### Get Job by ID
 ```http
 GET /jobs/:id
+x-api-key: your-secure-key
 ```
 
 ### Cancel a Job
 ```http
 DELETE /jobs/:id
+x-api-key: your-secure-key
 ```
 
 ---
@@ -214,6 +226,8 @@ docker build -t job-queue-system .
 |---|---|---|
 | `NODE_ENV` | development | Environment |
 | `PORT` | 3000 | Server port |
+| `API_KEY` | default-dev-key | API authentication key for integrations |
+| `FRONTEND_URL` | http://localhost:3000 | Allowed origin for strict CORS |
 | `REDIS_HOST` | localhost | Redis host |
 | `REDIS_PORT` | 6379 | Redis port |
 | `DB_HOST` | localhost | PostgreSQL host |

@@ -1,6 +1,6 @@
 import { Worker } from 'bullmq';
 import { redisConnection } from '../../config/redis';
-import { reportProcessor } from '../processors/reportProcessor';
+import path from 'path';
 import { logger } from '../../config/logger';
 import { config } from '../../config';
 import { updateJobStatus, getJobByBullId } from '../../db/jobRepository';
@@ -13,7 +13,8 @@ import {
 } from '../../monitoring/metrics';
 
 export const createReportWorker = (): Worker => {
-  const worker = new Worker('report', reportProcessor, {
+  const processorFile = path.join(__dirname, `../processors/reportProcessor${path.extname(__filename)}`);
+  const worker = new Worker('report', processorFile, {
     connection: redisConnection,
     concurrency: config.worker.concurrency,
   });
@@ -21,8 +22,7 @@ export const createReportWorker = (): Worker => {
   worker.on('active', async (job) => {
     logger.info(`⚡ Report job ${job.id} started`);
     jobsActiveGauge.labels('report').inc();
-    await updateJobStatus(`report-${job.id!}`, 'active', { started_at: new Date() });
-    const record = await getJobByBullId(`report-${job.id!}`);
+    const record = await updateJobStatus(`report-${job.id!}`, 'active', { started_at: new Date() });
     if (record) emitJobStatus(record.id, job.id!, 'report', 'active');
   });
 
@@ -31,12 +31,11 @@ export const createReportWorker = (): Worker => {
     jobsActiveGauge.labels('report').dec();
     jobsCompletedTotal.labels('report').inc();
     jobDurationHistogram.labels('report').observe(Date.now() - job.timestamp);
-    await updateJobStatus(`report-${job.id!}`, 'completed', {
+    const record = await updateJobStatus(`report-${job.id!}`, 'completed', {
       result: job.returnvalue,
       completed_at: new Date(),
       duration_ms: Date.now() - job.timestamp,
     });
-    const record = await getJobByBullId(`report-${job.id!}`);
     if (record) emitJobStatus(record.id, job.id!, 'report', 'completed');
   });
 
@@ -44,11 +43,10 @@ export const createReportWorker = (): Worker => {
     logger.error(`❌ Report job ${job?.id} failed`, { error: err.message });
     jobsActiveGauge.labels('report').dec();
     jobsFailedTotal.labels('report').inc();
-    await updateJobStatus(`report-${job?.id!}`, 'failed', {
+    const record = await updateJobStatus(`report-${job?.id!}`, 'failed', {
       error: err.message,
       attempts: job?.attemptsMade,
     });
-    const record = await getJobByBullId(`report-${job?.id!}`);
     if (record) emitJobStatus(record.id, job?.id!, 'report', 'failed', { error: err.message });
   });
 

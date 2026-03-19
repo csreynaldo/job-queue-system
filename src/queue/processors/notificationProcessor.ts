@@ -2,7 +2,7 @@ import type { Job } from 'bullmq';
 import { logger } from '../../config/logger';
 import type { NotificationJobData } from '../../types/job.types';
 
-export const notificationProcessor = async (
+export default async (
   job: Job<NotificationJobData>,
 ): Promise<{ delivered: boolean; channel: string }> => {
   logger.info(`🔔 Processing notification job ${job.id}`, {

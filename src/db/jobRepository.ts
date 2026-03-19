@@ -1,4 +1,5 @@
 import { db } from './database';
+import { logger } from '../config/logger';
 import type { JobType, JobPriority, JobStatus } from '../types/job.types';
 
 export interface JobRecord {
@@ -30,7 +31,7 @@ export interface ListJobsFilter {
   status?: JobStatus;
   type?: JobType;
   limit?: number;
-  offset?: number;
+  cursor?: string;
 }
 
 // ================================
@@ -85,8 +86,8 @@ export const updateJobStatus = async (
     completed_at?: Date;
     attempts?: number;
   },
-): Promise<void> => {
-  await db.query(
+): Promise<JobRecord | null> => {
+  const { rows } = await db.query<JobRecord>(
     `UPDATE jobs SET
       status = $1,
       result = COALESCE($2, result),
@@ -95,7 +96,8 @@ export const updateJobStatus = async (
       started_at = COALESCE($5, started_at),
       completed_at = COALESCE($6, completed_at),
       attempts = COALESCE($7, attempts)
-     WHERE bull_job_id = $8`,
+     WHERE bull_job_id = $8
+     RETURNING *`,
     [
       status,
       extra?.result ? JSON.stringify(extra.result) : null,
@@ -107,6 +109,11 @@ export const updateJobStatus = async (
       bullJobId,
     ],
   );
+  if (rows.length === 0) {
+    logger.error(`⚠️ Ghost job detected or row missing for ID: ${bullJobId}`);
+    throw new Error(`Ghost job detected: no record found for ${bullJobId}`);
+  }
+  return rows[0];
 };
 
 // ================================
@@ -127,16 +134,20 @@ export const listJobs = async (filter: ListJobsFilter = {}): Promise<JobRecord[]
     values.push(filter.type);
   }
 
+  if (filter.cursor) {
+    conditions.push(`created_at < $${idx++}`);
+    values.push(filter.cursor);
+  }
+
   const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
   const limit = filter.limit ?? 20;
-  const offset = filter.offset ?? 0;
 
-  values.push(limit, offset);
+  values.push(limit);
 
   const { rows } = await db.query<JobRecord>(
     `SELECT * FROM jobs ${where}
      ORDER BY created_at DESC
-     LIMIT $${idx++} OFFSET $${idx++}`,
+     LIMIT $${idx++}`,
     values,
   );
 
