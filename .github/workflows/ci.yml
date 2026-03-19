@@ -1,11 +1,10 @@
-@'
 name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [ main, develop ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
   build:
@@ -29,7 +28,3 @@ jobs:
 
       - name: Build TypeScript
         run: npm run build
-
-      - name: Check build output
-        run: ls -la dist/
-'@ | Set-Content -Path .github\workflows\ci.yml -Encoding UTF8
